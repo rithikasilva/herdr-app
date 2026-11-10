@@ -6,6 +6,7 @@ This is a personal fork of [herdrdev/herdr-app](https://github.com/herdrdev/herd
 Its changes from upstream are listed here and will be updated as the fork evolves:
 
 - Removed usage telemetry, its settings and mod API, and the feedback submission feature.
+- Removed GitHub Actions workflows; builds and installs run locally.
 
 The installation links below install upstream Herdr, not this fork.
 
@@ -39,6 +40,8 @@ Resolve conflicts and review the diff, especially telemetry, feedback, and the
 fork changes listed above. Update this section when your customizations change.
 After testing, merge the sync branch into your fork's main branch and push it;
 then run `just install` when ready. Do not push upstream release tags.
+
+---
 
 Herdr is a desktop app for terminals and coding agents. Keep work in spaces, see which agents need you, and leave terminals running when you close the window.
 
@@ -154,8 +157,8 @@ See the [command reference](docs/commands.md) for arguments.
 
 For bugs, mod API requests and code contributions, see [Contributing](CONTRIBUTING.md).
 
-Clone this repo with its submodules. Use Rust 1.95.0 and Zig 0.16.0, the versions used in [CI](.github/workflows/ci.yml).
-Linux needs the development packages listed in that workflow.
+Clone this repo with its submodules. Use Rust 1.95.0 or newer and Zig 0.16.0.
+Linux needs pkg-config, clang, libclang, and the XCB, XKB, Wayland, Vulkan, fontconfig and FreeType development libraries.
 
 ```sh
 git clone --recurse-submodules https://github.com/herdrdev/herdr-app.git
@@ -179,6 +182,6 @@ To compare drawing changes on Windows, Linux or macOS, run the same fixed worklo
 python scripts/bench.py --bin <app executable> --set spinners --seconds 20
 ```
 
-The runner requires `hc` on PATH and uses the Python executable running the script. It prints a unique artifact folder with the run settings, counters and results, then stops its private app, terminals and core. Both sets use Python fixture programs; the default set’s TUI workload replaces historical `btop` measurements. `--only spinners` measures just the quiet native spinner scenario. Keep the window visible and the display awake, and compare the same window activity and display settings; inactive windows may draw at a lower rate. Windows records visibility, foreground activity and display Hz at each measurement boundary; other platforms mark these observations unavailable. Visibility does not establish occlusion. Draws are window render calls. Render-to-paint elapsed time stops before scene finalization, backend drawing, uploads and presentation; it is separate from OS process CPU time. Neither measures physical presentation or the FPS HUD’s derived MAX FPS.
+The runner requires `hc` on PATH and uses the Python executable running the script. It prints a unique artifact folder with the run settings, counters and results, then stops its private app, terminals and core. Every set uses Python fixture programs; the default set’s TUI workload replaces historical `btop` measurements. `--only spinners` measures just the quiet native spinner scenario. `--set titles` runs eight agents whose titles spin after a prefix (`π ⠹ task`) on the main layout. Keep the window visible and the display awake, and compare the same window activity and display settings; inactive windows may draw at a lower rate. Windows records visibility, foreground activity and display Hz at each measurement boundary; other platforms mark these observations unavailable. Visibility does not establish occlusion. Draws are window render calls. Render-to-paint elapsed time stops before scene finalization, backend drawing, uploads and presentation; it is separate from OS process CPU time. Neither measures physical presentation or the FPS HUD’s derived MAX FPS.
 
 `python scripts/bench_compare.py ghostty --root <artifact folder>` reuses a run’s fake agent for the macOS comparison. Benchmark checks: `python -m unittest discover -s scripts -p test_bench.py`.
