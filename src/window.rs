@@ -444,11 +444,6 @@ pub struct AppWindow {
     /// The OS tells us when files change (`files.rs`); else the disk is polled.
     file_events: Option<crate::files::FileEvents>,
     polls: u64,
-    /// The downloaded update the frame's pill offers, and the one closed for now.
-    /// What's waiting, in words (`update_label`).
-    update_ready: Option<String>,
-    update_dismissed: Option<String>,
-    update_success: bool,
     update_status: String,
     focus: FocusHandle,
     _tasks: Vec<Task<()>>,
@@ -537,9 +532,6 @@ impl AppWindow {
             system_dark: is_dark(window.appearance()),
             file_events,
             polls: 0,
-            update_ready: None,
-            update_dismissed: None,
-            update_success: false,
             update_status: String::new(),
             focus: cx.focus_handle(),
             _tasks: Vec::new(),
@@ -743,10 +735,6 @@ impl AppWindow {
         crate::update_notes::started(first_install);
         if first_install {
             cx.defer_in(window, |this, window, cx| this.open_welcome(window, cx));
-        } else if !crate::update_notes::spotlights().is_empty() {
-            cx.defer_in(window, |this, window, cx| this.open_whats_new(false, window, cx));
-        } else {
-            w.update_success = crate::update_notes::changed();
         }
         w
     }
@@ -3356,13 +3344,6 @@ impl AppWindow {
                 }
                 return;
             }
-            "app.check_updates" => crate::update::check_now(),
-            "app.update_core" => {
-                if crate::update::core().ready.is_none() && crate::update::core().error.is_none() {
-                    return self.fail("herdr-core is up to date");
-                }
-                crate::update::update_core();
-            }
             "app.help" => {
                 if self.overlays.iter().any(|o| o.id == "help") {
                     self.close_overlay("help", window, cx);
@@ -3398,14 +3379,6 @@ impl AppWindow {
                 self.write_person(|p| p.zoom = zoom, window, cx);
             }
             "app.quit" => cx.quit(),
-            "app.update" => {
-                if !crate::update::apply() {
-                    return self.fail("no update is ready yet");
-                }
-                self.drain_documents(window, cx);
-                crate::update::relaunch();
-                cx.quit();
-            }
             "window.close" | "window.minimize" | "window.maximize" => return self.window_command(name, window, cx),
             // Hiding apps is macOS's (bound natively there).
             "app.hide" | "app.hide_others" | "app.show_all" => return,
@@ -3821,11 +3794,6 @@ impl AppWindow {
 
     fn poll(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.flush_documents(false, window, cx);
-        let ready = Self::update_label();
-        if ready != self.update_ready {
-            self.update_ready = ready;
-            cx.notify();
-        }
         // The settings screen shows versions and progress: redraw mods when they move.
         let status = crate::update::status().to_string();
         if status != self.update_status {
@@ -4294,11 +4262,6 @@ impl AppWindow {
     fn render_overlays(&self, viewport: Size<Pixels>, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let mut out = Vec::new();
         let mut toast_y = 16.0;
-        // Drawn last, so it stays clickable over an open dialog.
-        let pill = self.render_update_pill(cx);
-        if pill.is_some() {
-            toast_y += UPDATE_PILL_HEIGHT + 8.0;
-        }
         // Windows under dialogs, popups and toasts; each kind in the order opened
         // (a window pressed last is last: on top).
         let order = self.overlays.iter().filter(|o| o.kind == OverlayKind::Window).chain(self.overlays.iter().filter(|o| o.kind != OverlayKind::Window));
@@ -4366,100 +4329,7 @@ impl AppWindow {
                 }
             }
         }
-        if let Some(error) = crate::update::core().error {
-            out.push(div().absolute().right(settings::z(16.0)).bottom(settings::z(toast_y))
-                .max_w(settings::z(540.0)).p(settings::z(12.0)).rounded_lg().bg(c("popover"))
-                .border_1().border_color(c("border")).text_size(settings::z(13.0)).text_color(c("foreground"))
-                .id("core-update-error").cursor_pointer()
-                .on_click(cx.listener(|this, _, w, cx| this.run("app.settings", json!({ "section": "updates" }), w, cx)))
-                .child(format!("herdr-core update failed: {error} · Open Updates")).into_any_element());
-        }
-        out.extend(pill);
         out
-    }
-}
-
-const UPDATE_PILL_HEIGHT: f32 = 34.0;
-
-impl AppWindow {
-    /// "Herdr 0.2.0 is ready · Restart": the frame's, so no layout or mod can hide it.
-    /// What's waiting, in words: the pill shows it until clicked or dismissed.
-    fn update_label() -> Option<String> {
-        let core = crate::update::core();
-        let core = core.ready.filter(|_| !core.updating);
-        match (crate::update::ready(), core) {
-            (Some(a), Some(c)) => Some(format!("Herdr {a} and herdr-core {c} are ready")),
-            (Some(a), None) => Some(format!("Herdr {a} is ready")),
-            (None, Some(c)) => Some(format!("herdr-core {c} is ready")),
-            (None, None) => None,
-        }
-    }
-
-    fn render_update_pill(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
-        let app_version = crate::update::ready();
-        let app_ready = app_version.is_some();
-        let success = self.update_ready.is_none() && self.update_success;
-        let label = self.update_ready.clone().or_else(|| success.then(|| format!("Updated to {}", env!("CARGO_PKG_VERSION"))))?;
-        let dismissal = app_version.map(|v| format!("app:{v}")).unwrap_or_else(|| label.clone());
-        if self.update_dismissed.as_ref() == Some(&dismissal) { return None; }
-        let pill = div()
-            .absolute()
-            .right(settings::z(16.0))
-            .bottom(settings::z(16.0))
-            .h(settings::z(UPDATE_PILL_HEIGHT))
-            .pl(settings::z(14.0))
-            .pr(settings::z(6.0))
-            .flex()
-            .items_center()
-            .gap(settings::z(10.0))
-            .bg(c("popover"))
-            .border_1()
-            .border_color(c("border"))
-            .rounded_full()
-            .shadow_lg()
-            .occlude()
-            .text_size(settings::z(13.0))
-            .child(div().text_color(c("foreground")).child(label.clone()))
-            .when(app_ready, |pill| pill.child(
-                div()
-                    .id("update-restart")
-                    .h(settings::z(24.0))
-                    .px(settings::z(10.0))
-                    .flex()
-                    .items_center()
-                    .rounded_full()
-                    .cursor_pointer()
-                    .bg(c("accent"))
-                    .text_color(c("accent_foreground"))
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .hover(|s| s.opacity(0.9))
-                    .child("Restart")
-                    .on_click(cx.listener(|this, _, w, cx| this.run("app.update", json!({}), w, cx))),
-            ))
-            .child(div().id("update-notes").px(settings::z(6.0)).cursor_pointer().text_color(c("accent"))
-                .child(if app_ready || success { "What changed" } else { "Open Updates" })
-                .on_click(cx.listener(move |this, _, w, cx| {
-                    if success { this.update_success = false; }
-                    this.run("app.settings", json!({ "section": "updates" }), w, cx);
-                })))
-            .child(
-                div()
-                    .id("update-dismiss")
-                    .size(settings::z(24.0))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .rounded_full()
-                    .cursor_pointer()
-                    .text_color(c("dim"))
-                    .hover(|s| s.bg(c("raised")).text_color(c("foreground")))
-                    .child("×")
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.update_dismissed = Some(dismissal.clone());
-                        cx.notify();
-                    })),
-            );
-        Some(pill.into_any_element())
     }
 }
 

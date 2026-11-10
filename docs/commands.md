@@ -452,7 +452,7 @@ No arguments.
 
 ## `app.whats_new`
 
-Show what this release brought (it opens once by itself after an update).
+Show what this release brought.
 
 No arguments.
 
@@ -469,18 +469,6 @@ Open the settings (section: look, alerts, updates).
 | Argument | Required |
 |---|---|
 | `section` | no |
-
-## `app.check_updates`
-
-Look for a newer Herdr and herdr-core now.
-
-No arguments.
-
-## `app.update_core`
-
-Update herdr-core to its latest release of this generation; terminals keep running.
-
-No arguments.
 
 ## `app.reset`
 
@@ -511,12 +499,6 @@ No arguments.
 ## `app.zoom_reset`
 
 Back to normal size.
-
-No arguments.
-
-## `app.update`
-
-Restart into the update Herdr downloaded (your terminals keep running).
 
 No arguments.
 

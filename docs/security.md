@@ -46,6 +46,6 @@ Do not assume every download is notarized or signed.
 
 Herdr does not collect or send usage telemetry. Files created by older versions remain on disk and are not sent.
 
-Update checks and mod network requests are separate. This fork does not include the feedback submission feature.
+The app does not check for or install app or core updates. Mods can make network requests. This fork does not include the feedback submission feature.
 
 [Back to Herdr](../README.md)

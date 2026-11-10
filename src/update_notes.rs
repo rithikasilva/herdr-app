@@ -123,17 +123,6 @@ pub fn started(first_install: bool) {
     let state = Launch::new(record, env!("CARGO_PKG_VERSION"), first_install);
     save(&state.record);
     *launch = Some(state);
-    std::thread::spawn(|| fetch_media(&all()));
-}
-
-pub fn cache(text: &str) {
-    let notes = parse(text);
-    if notes.is_empty() { return; }
-    *FETCHED.lock().unwrap() = Some(notes.clone());
-    std::thread::spawn(move || fetch_media(&notes));
-    if let Err(e) = std::fs::write(path("update-notes-cache.md"), text) {
-        tracing::warn!("update notes cache: {e}");
-    }
 }
 
 pub fn has(version: &str) -> bool {
@@ -182,28 +171,6 @@ fn preview_media(url: &str) -> bool {
     true
 }
 
-fn fetch_media(notes: &[Note]) {
-    let dir = path("update-notes-media");
-    if std::fs::create_dir_all(&dir).is_err() { return; }
-    for media in notes.iter().flat_map(|n| &n.items).flat_map(|item| &item.media) {
-        let url = &media.path;
-        if preview_media(url) { continue; }
-        let file = media_path(url);
-        if file.is_file() { continue; }
-        // The same URL may be in both the startup and newly fetched feed.
-        let temp = file.with_extension(format!("{:?}.new", std::thread::current().id()));
-        let result = crate::spawn::command(crate::update::system("curl"))
-            .args(["-fsSL", "--max-time", "30", "--max-filesize", "16777216", "-o"])
-            .arg(&temp).arg(url).stdin(std::process::Stdio::null()).output();
-        if result.is_ok_and(|out| out.status.success())
-            && std::fs::rename(&temp, &file).is_ok()
-        {
-            MEDIA.lock().unwrap().0.remove(&file);
-        }
-        let _ = std::fs::remove_file(temp);
-    }
-}
-
 fn cached_media(file: &std::path::Path, root: &std::path::Path) -> Option<Media> {
     let (width, height) = image::ImageReader::open(file).ok()?.with_guessed_format().ok()?.into_dimensions().ok()?;
     if width == 0 || height == 0 { return None; }
@@ -243,10 +210,6 @@ pub fn spotlights() -> Vec<Note> {
     let launch = LAUNCH.lock().unwrap();
     let Some(l) = launch.as_ref().filter(|l| l.changed) else { return Vec::new() };
     notes.into_iter().filter(|n| n.spotlight && !l.record.presented.contains(&n.version)).collect()
-}
-
-pub fn changed() -> bool {
-    LAUNCH.lock().unwrap().as_ref().is_some_and(|l| l.changed)
 }
 
 pub fn presented(versions: &[String]) {

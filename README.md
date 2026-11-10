@@ -6,7 +6,8 @@ This is a personal fork of [herdrdev/herdr-app](https://github.com/herdrdev/herd
 Its changes from upstream are listed here and will be updated as the fork evolves:
 
 - Removed usage telemetry, its settings and mod API, and the feedback submission feature.
-- Removed GitHub Actions workflows; builds and installs run locally.
+- Removed GitHub Actions workflows and release tooling; builds and installs run locally.
+- App and core updates are managed manually, without update checks or prompts.
 
 The installation links below install upstream Herdr, not this fork.
 
@@ -20,26 +21,21 @@ Source builds do not automatically update to upstream releases.
 
 ### Bring in upstream changes
 
-Once per checkout, add the upstream repository:
-
-```sh
-git remote add upstream https://github.com/herdrdev/herdr-app.git
-```
-
-To review an update, first commit your work, then create a branch and merge:
+`master` tracks upstream unchanged. Keep personal changes on `personal` and
+merge upstream into it when you want to update:
 
 ```sh
 git fetch upstream
-git switch -c sync/upstream-YYYY-MM-DD
+git switch personal
+git branch -f master upstream/master
 git merge upstream/master
 git submodule update --init --recursive
 just test
+just install
 ```
 
-Resolve conflicts and review the diff, especially telemetry, feedback, and the
-fork changes listed above. Update this section when your customizations change.
-After testing, merge the sync branch into your fork's main branch and push it;
-then run `just install` when ready. Do not push upstream release tags.
+Review merge conflicts and check that your personal changes remain intact.
+Update herdr-core separately using its own installation method.
 
 ---
 

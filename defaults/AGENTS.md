@@ -622,10 +622,9 @@ The main ones:
   `layout.clone {name, as?}` (duplicate, then switch; default `<name>-copy`).
 - App: `mod.clone {name, as?}` (duplicate; default `<name>-copy`), `mod.open {name}` (again: closes it), `overlay.close {id?}`, `app.help` (again: closes it), `app.palette` (again: closes it), `app.settings {section?}`
   (sections: `look`, `machines`, `alerts`, `updates`; Machines lists, updates, renames and removes ssh machines; settings edit the same files you do).
-  `app.check_updates` (only a successful check reports Up to date; a failed check clears the checked time and can be retried), `app.update_core` (a newer herdr-core of this generation, terminals kept;
-  never one a package manager owns), `app.welcome`, `app.whats_new`, `app.reset`,
+  `app.welcome`, `app.whats_new`, `app.reset`,
   `app.theme {name}`, `app.zoom_in`, `app.zoom_out`, `app.zoom_reset`,
-  `app.update` (restart into a downloaded update).
+  Updates are managed manually outside the app.
   Add machine lists all named ssh-config hosts in a scrollable list. Machines
   that need a password, a new host key or herdr-core installed show what to run
   in your own terminal; the picker updates once it is added. Other machines are
@@ -685,20 +684,13 @@ What's about the user, never a look:
   precedence as fonts.
 - `appearance`: `"light"` or `"dark"` always; absent, the system's. A layout
   with a light and a dark theme shows the matching one.
-- Updates: an installed app downloads them by itself and offers Restart and
-  What changed. If the app crashes or is killed with a verified newer update
-  waiting, the next launch installs it before opening a window. The first
-  start after an app update also updates herdr-core
-  to the latest release of the same generation, keeping terminals running.
-  Settings → Updates keeps app and core actions together;
-  its What's new button opens the waiting update's release range, or this
-  version's notes, in the What's new window. Reading never clears the waiting-update dot.
-  Rare spotlight releases open What’s new after restart, once; otherwise a
-  quiet Updated pill lasts for that launch. A build from source never updates.
-  Curated notes come from the bundled root `CHANGELOG.md`; remote notes and
-  media are optional. `update-notes.json` records the last successful app
-  version and presented spotlights; `update-notes-cache.md` caches remote
-  notes; `update-notes-media/` caches HTTPS images (including animated WebP clips),
+- Updates: the app does not check, download, install, or notify about app
+  or core updates. Update the app and herdr-core separately yourself.
+  Settings → Updates shows the installed versions and a What's new button.
+  Notes come from the bundled root `CHANGELOG.md` and any existing cached notes.
+  The app does not automatically fetch release notes or media. `update-notes.json` records the last successful app
+  version and presented spotlights; `update-notes-cache.md` may hold notes from older versions;
+  `update-notes-media/` may hold cached images (including animated WebP clips),
   referenced below its item in the changelog as `![label](https://...)`.
   Each version uses `### New` with `- **Headline.** detail` highlights and
   `### Fixed` with short bullet items. Unsectioned bullets are plain items.
@@ -709,7 +701,7 @@ What's about the user, never a look:
   `HERDR_NOTES_MEDIA_DIR=/var/tmp/herdr-notes-media`: URLs under
   `https://media.herdr.dev/<version>/<scene>.webp` use that directory's
   `<version>/<scene>.webp` instead of downloading. Without the variable,
-  media uses the normal HTTPS cache.
+  only already-cached media is displayed.
   Mods use `updates().notes` and `presentUpdateNotes([version])` only
   for spotlight entries actually shown expanded, not collapsed headlines.
   macOS releases require Apple Silicon; Intel Macs must build from source.

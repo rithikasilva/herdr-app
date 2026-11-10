@@ -1,9 +1,7 @@
 //! The frame's core screens, shown instead of the main window until a core
 //! that can serve this app runs:
-//! - none found (core_bin.rs): install it for me (the core's own installer),
-//!   or point at one;
-//! - too old (or missing a method the app calls): update it (`hc update`,
-//!   terminals kept);
+//! - none found (core_bin.rs): install one yourself or point at it;
+//! - too old (or missing a method the app calls): update it yourself;
 //! - a newer generation than this app speaks: update the app.
 //! Then the main window opens.
 
@@ -12,20 +10,9 @@ use crate::mods::Request;
 use crate::settings::{self, color as c};
 use gpui::prelude::FluentBuilder as _;
 use gpui::*;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 const ICON: &[u8] = include_bytes!("../assets/icons/herdr-ui-icon-clean.png");
-#[cfg(not(windows))]
-const APP_INSTALL: &str = "curl -fsSL https://releases.herdr.dev/app/install.sh | sh";
-#[cfg(windows)]
-const APP_INSTALL: &str = "powershell -c \"irm https://releases.herdr.dev/app/install.ps1 | iex\"";
-#[cfg(not(windows))]
-const CORE_INSTALL: &str = "curl -fsSL https://releases.herdr.dev/core/install.sh | sh";
-#[cfg(windows)]
-const CORE_INSTALL: &str = "powershell -c \"irm https://releases.herdr.dev/core/install.ps1 | iex\"";
-const CORE_PLACE: &str = if cfg!(windows) { r"%LOCALAPPDATA%\Programs\herdr-core" } else { "~/.local/bin" };
-
 /// What's missing before the main window can open.
 pub enum Need {
     Install,
@@ -47,7 +34,7 @@ mod tests {
     use super::Need;
 
     #[test]
-    fn unreadable_core_connections_offer_installation_instead_of_retry() {
+    fn unreadable_core_connections_require_manual_setup() {
         let error = anyhow::anyhow!("bad hello reply from core: EOF");
         assert!(matches!(Need::connection(error), Need::Install));
     }
@@ -62,7 +49,6 @@ mod tests {
 
 enum State {
     Ready,
-    Busy(&'static str),
     Failed(String),
 }
 
@@ -111,36 +97,6 @@ impl Setup {
         cx.notify();
     }
 
-    /// Runs `work` off the UI thread, then `start` again (or shows the error).
-    fn run(&mut self, label: &'static str, work: fn() -> Result<Option<PathBuf>, String>, window: &mut Window, cx: &mut Context<Self>) {
-        self.state = State::Busy(label);
-        cx.notify();
-        cx.spawn_in(window, async move |this, cx| {
-            let result = cx.background_executor().spawn(async move { work() }).await;
-            let _ = this.update_in(cx, |this, window, cx| match result {
-                Ok(bin) => {
-                    if let Some(bin) = bin {
-                        crate::core_bin::use_core(bin);
-                    }
-                    this.start(window, cx);
-                }
-                Err(e) => {
-                    this.state = State::Failed(e);
-                    cx.notify();
-                }
-            });
-        })
-        .detach();
-    }
-
-    fn install(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.run("Installing herdr-core…", || crate::core_bin::install().map(Some), window, cx);
-    }
-
-    fn update(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.run("Updating herdr-core… your terminals keep running.", || crate::core_bin::update().map(|_| None), window, cx);
-    }
-
     fn choose(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let paths = cx.prompt_for_paths(PathPromptOptions { files: true, directories: false, multiple: false, prompt: Some("Use this herdr-core".into()) });
         cx.spawn_in(window, async move |this, cx| {
@@ -169,7 +125,7 @@ impl Setup {
             Need::Install => (
                 "Herdr needs herdr-core".into(),
                 "herdr-core runs your terminals and agents, and keeps them alive when this window closes. Herdr couldn't find it on this computer.".into(),
-                format!("Install it for me puts it in {CORE_PLACE} (with hc), like its own installer: {CORE_INSTALL}"),
+                "Install herdr-core yourself, then choose its executable or retry.".into(),
             ),
             Need::Connect(error) => (
                 "Herdr can't connect to herdr-core".into(),
@@ -179,17 +135,17 @@ impl Setup {
             Need::Fix(Mismatch::TooOld { have, need }) => (
                 "Herdr needs a newer herdr-core".into(),
                 format!("Yours is {have}; this Herdr needs {need} or newer. Updating keeps your terminals running."),
-                "Or update it yourself: hc update".into(),
+                "Update herdr-core yourself, then retry.".into(),
             ),
             Need::Fix(Mismatch::Missing(methods)) => (
                 "Herdr needs a newer herdr-core".into(),
                 format!("Your herdr-core can't do everything this Herdr needs ({}). Updating keeps your terminals running.", methods.join(", ")),
-                "Or update it yourself: hc update".into(),
+                "Update herdr-core yourself, then retry.".into(),
             ),
             Need::Fix(Mismatch::Newer { generation }) => (
                 "This Herdr is older than your herdr-core".into(),
                 format!("Your herdr-core speaks a newer protocol (generation {generation}) than this Herdr understands. Update Herdr; your terminals keep running."),
-                format!("Update Herdr: {APP_INSTALL}"),
+                "Update your Herdr app from your fork, then reopen it.".into(),
             ),
         }
     }
@@ -213,14 +169,13 @@ fn button(id: &'static str, label: &'static str, primary: bool) -> Stateful<Div>
 
 impl Render for Setup {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let busy = matches!(self.state, State::Busy(_));
         let (title, body, foot) = self.words();
         let actions = match &self.need {
             Need::Install => div()
                 .flex()
                 .gap(px(10.0))
-                .child(button("install", "Install it for me", true).when(!busy, |d| d.on_click(cx.listener(|this, _, w, cx| this.install(w, cx)))))
-                .child(button("choose", "I have it somewhere…", false).when(!busy, |d| d.on_click(cx.listener(|this, _, w, cx| this.choose(w, cx))))),
+                .child(button("retry", "Retry", true).on_click(cx.listener(|this, _, w, cx| this.start(w, cx))))
+                .child(button("choose", "Choose herdr-core…", false).on_click(cx.listener(|this, _, w, cx| this.choose(w, cx)))),
             Need::Connect(_) => div().child(button("retry", "Retry", true).on_click(cx.listener(|this, _, w, cx| this.start(w, cx)))),
             Need::Fix(Mismatch::Newer { .. }) => div()
                 .flex()
@@ -229,7 +184,7 @@ impl Render for Setup {
             Need::Fix(_) => div()
                 .flex()
                 .gap(px(10.0))
-                .child(button("update", "Update herdr-core", true).when(!busy, |d| d.on_click(cx.listener(|this, _, w, cx| this.update(w, cx))))),
+                .child(button("retry", "Retry", true).on_click(cx.listener(|this, _, w, cx| this.start(w, cx)))),
         };
         div()
             .size_full()
@@ -258,7 +213,6 @@ impl Render for Setup {
                     .child(div().text_size(px(12.5)).line_height(px(19.0)).text_color(c("dim")).child(foot))
                     .child(match &self.state {
                         State::Ready => div(),
-                        State::Busy(what) => div().text_size(px(13.0)).text_color(c("accent")).child(*what),
                         State::Failed(e) => div().text_size(px(13.0)).text_color(c("blocked")).child(e.clone()),
                     }),
             )

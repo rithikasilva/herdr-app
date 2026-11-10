@@ -283,12 +283,7 @@ export function themes(): { name: string; light: boolean; colors: Record<string,
 /** The font families on this machine, by name. */
 export function fonts(): string[];
 
-/** Herdr's and herdr-core's versions and what's waiting. `app.updates`: false for a build from
- *  source (it never updates). `core.managed`: the package manager that owns the core (homebrew,
- *  nix, mise), which the app never updates. `checked`: unix seconds of the last successful
- *  check; null before success or after a failed check.
- *  `checks`: anything is checked at all (not in a build from source); `checking`: looking now
- *  (`app.check_updates` starts a look). */
+/** Local versions and bundled release notes. The app does not check for updates. */
 export function updates(): {
   app: { version: string; ready: string | null; updates: boolean };
   notes: { version: string; date: string; items: { headline: string; detail: string; fixed: boolean; media: { path: string; width: number; height: number }[] }[]; spotlight: boolean }[];

@@ -113,14 +113,9 @@ fn main() {
         )
         .init();
 
-    update::leave_install_folder();
-    if update::apply_on_startup() {
-        return;
-    }
-
     // A first start sizes the app to the screen and the system's text size.
     let fresh = !settings::path().exists();
-    // The core people installed; without one, the setup screen installs it.
+    // Find the core installed by the user.
     let person = settings::load_person();
     let configured = person.as_ref().ok().and_then(|p| p.core.clone());
     let core: Result<std::sync::Arc<hc::Core>, setup::Need> = match core_bin::find(configured.as_deref()) {
@@ -139,10 +134,6 @@ fn main() {
     };
     #[cfg(target_os = "macos")]
     core_bin::install_cli_link();
-    if core.is_ok() {
-        update::after_update();
-    }
-    update::start();
     bench::start();
     if let Err(e) = mods::write_workspace() {
         eprintln!("herdr-app: cannot write {}: {e}", mods::app_dir().display());
@@ -159,7 +150,7 @@ fn main() {
             settings::note_fonts(cx.text_system().all_font_names());
             settings::load_home_fonts(cx);
             mods::init(cx);
-            // Not restarted for it: the update goes in when the app quits.
+            // Finish saving the window state and mod data on quit.
             cx.on_app_quit(|cx| {
                 let deadline = std::time::Instant::now() + std::time::Duration::from_millis(250);
                 // Where the window was, for the next start (a quit never asks the window).
@@ -173,7 +164,6 @@ fn main() {
                     }
                 }
                 mods::finish_shared();
-                update::apply();
                 async {}
             })
             .detach();
