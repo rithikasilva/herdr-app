@@ -75,7 +75,7 @@ first frame or during GPU recovery it reports an error instead of a PNG.
 
 | File | What it decides | Applied |
 |---|---|---|
-| `layouts/<name>.json` | the window and its whole look: blocks, theme, fonts, backgrounds, pane frames; one file per layout (`main`, `terminals`, `win98`, any you add) | live |
+| `layouts/<name>.json` | the window and its whole look: blocks, theme, fonts, backgrounds, pane frames; one file per layout (`main` and any you add) | live |
 | `keys.json` | what every key does | live |
 | `settings.json` | the person: zoom, sounds, fonts for every layout | live |
 | `mods/<name>/` | panels: small JavaScript programs | live (hot reload) |
@@ -177,9 +177,7 @@ that starts a terminal or any installed agent, `new-menu`; panes as cards
 with a header; Files and Changes panels on the right, `files` and
 `changes`, opened from the tab bar and remembered per space (which ones:
 shared `"workspace.panels"`, set by the welcome); a status bar,
-`workspace-status`), and as examples `terminals` ("Terminals": tabs in
-the title bar, panes as cards, a space picker) and `win98`
-("Herdr 98": a whole desktop in one mod, `win98`). Add a layout by
+`workspace-status`). Add a layout by
 writing a new file. The Files panel supports Windows folder paths with spaces,
 parentheses and apostrophes, and preserves Unicode file and folder names
 (including Chinese). Directory links expand as folders; their contents load
@@ -188,8 +186,8 @@ only when expanded.
 **Herdr's own layouts and mods are read-only.** They are replaced whole
 on every start. Use settings.json for look (fonts, sizes, theme, colors,
 sounds), where the layout leaves them unset. Herdr (main) has no look of
-its own, so your settings decide it; Herdr 98 and Terminals bring their own
-look. The theme picker overrides any layout. To change a shipped layout's
+its own, so your settings decide it. Personal layouts can bring their own
+look; the theme picker overrides any layout. To change a shipped layout's
 look beyond that, or its structure/code, clone it and edit the clone:
 
 ```sh
@@ -335,14 +333,12 @@ layout's look and a block can differ:
 - `font` / `font_size`: the terminals' (px at zoom 1); `ui_font`: the mods'
   (their text sizes are their own, in px, and follow zoom). Optional: without
   them a layout uses settings.json's, else Herdr's (JetBrains Mono 14, Geist).
-  Herdr (main) leaves these unset; Terminals sets text size 15, and Herdr 98
-  brings its own fonts.
+  Herdr (main) leaves these unset.
   JetBrains Mono, Geist Mono and Geist ship with Herdr; any installed font
   works (a terminal font the machine lacks falls back to JetBrains Mono).
   A layout brings its own fonts: `.ttf`/`.otf` files in a mod's `fonts/`
   folder (or the home's `fonts/`) load at start and on the next look change,
-  so a layout and its mod folder travel together (Herdr 98's do: its pixel
-  fonts are in `mods/win98/fonts/`).
+  so a layout and its mod folder travel together.
 - `pane_scrollbars` in settings.json (default `true`): show terminal scrollback
   with a slim thumb and track. Drag the thumb or click the track to jump there.
   With little or no terminal padding, the hit lane overlays the last 8px;
@@ -686,7 +682,7 @@ What's about the user, never a look:
   with a light and a dark theme shows the matching one.
 - Updates: the app does not check, download, install, or notify about app
   or core updates. Update the app and herdr-core separately yourself.
-  Settings → Updates shows the installed versions and a What's new button.
+  Settings → Updates shows only the installed app and core versions.
   Notes come from the bundled root `CHANGELOG.md` and any existing cached notes.
   The app does not automatically fetch release notes or media. `update-notes.json` records the last successful app
   version and presented spotlights; `update-notes-cache.md` may hold notes from older versions;

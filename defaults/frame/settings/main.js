@@ -14,7 +14,7 @@ const SECTIONS = [
   { id: "updates", title: "Updates", icon: "refresh" },
 ];
 
-const LOOKS = { main: "Herdr", terminals: "Terminals", win98: "Herdr 98" };
+const LOOKS = { main: "Herdr" };
 const APPEARANCES = [
   [null, "System"],
   ["light", "Light"],
@@ -224,15 +224,6 @@ export default class Settings extends View {
             .child(row().h(11).gap(2).p(2).border_b(1).border_color(t.border).child(div().w(20).rounded(2).bg(t.accent)).child(div().w(16).rounded(2).bg(t.raised)).child(div().w(16).rounded(2).bg(t.raised)))
             .child(row().flex_1().p(4).gap(3).child(term()).child(term())),
         );
-    if (name === "terminals") {
-      const card = () => col().flex_1().rounded(4).border_1().border_color("#2c2f34").bg("#17191c").child(row().h(7).px(3).items_center().border_b(1).border_color("#25282c").child(line(14, "#5d6168")));
-      return frame(col())
-        .bg("#131619")
-        .p(4)
-        .gap(4)
-        .child(row().h(10).gap(3).p(1).rounded(4).bg("#1d1f22").child(div().w(30).rounded(3).bg("#34373c").border_1().border_color("#4a4d53")).child(div().w(30)))
-        .child(row().flex_1().gap(4).child(card()).child(card()));
-    }
     // A layout of the person's own: a plain frame.
     return frame(col()).child(row().h(11).border_b(1).border_color(t.border)).child(row().flex_1().p(4).child(term()));
   }
@@ -705,12 +696,9 @@ export default class Settings extends View {
     const u = updates();
     return v_flex()
       .w_full()
-      .child(this.heading(t, "Herdr"))
-      .child(this.row(t, `Herdr ${u.app.version}`, "Update the app yourself from your fork.",
-        this.button(t, "st-whats-new", "What's new", () => { closeOverlay(props()?.overlay); run("app.whats_new"); })))
-      .child(div().h(18))
-      .child(this.heading(t, "herdr-core"))
-      .child(this.row(t, `herdr-core ${u.core.version ?? ""}`, "Install and update herdr-core yourself.", div()));
+      .gap(12)
+      .child(div().text_size(13.5).text_color(t.foreground).child(`Herdr ${u.app.version}`))
+      .child(div().text_size(13.5).text_color(t.foreground).child(`herdr-core ${u.core.version ?? "unknown"}`));
   }
 
   // ----------------------------------------------------------------------

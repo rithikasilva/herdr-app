@@ -910,17 +910,14 @@ mod tests {
         assert!(main.look.theme.is_none() && main.look.colors.is_none() && main.look.font.is_none() && main.look.font_size.is_none() && main.look.ui_font.is_none());
         assert_eq!(Settings::compose(&Person::default(), &main.look, true).font_size, 14.0);
         assert_eq!(main.look.terminal_padding, Some([14.0, 12.0]));
-        let terminals: Node = serde_json::from_str(include_str!("../defaults/layouts/terminals.json")).unwrap();
-        assert_eq!(Settings::compose(&person, &terminals.look, true).font_size, 15.0);
         let main_settings = Settings::compose(&person, &main.look, true);
         assert_eq!((main_settings.font_size, main_settings.theme.as_str()), (19.0, "moss"));
-        let mut win98: Node = serde_json::from_str(include_str!("../defaults/layouts/win98.json")).unwrap();
-        let win_settings = Settings::compose(&person, &win98.look, true);
-        assert_eq!(win_settings.theme, "win98");
-        assert_eq!(win_settings.font_family, "PxPlus IBM VGA 8x16");
+        let mut custom = main.clone();
+        custom.look.theme = Some(ThemeChoice::One("win98".into()));
+        assert_eq!(Settings::compose(&person, &custom.look, true).theme, "win98");
         let clicks = crate::layout_sync::State { theme: Some(ThemeChoice::One("ink".into())), ..Default::default() };
-        clicks.apply(&mut win98);
-        assert_eq!(Settings::compose(&person, &win98.look, true).theme, "ink");
+        clicks.apply(&mut custom);
+        assert_eq!(Settings::compose(&person, &custom.look, true).theme, "ink");
     }
 
     #[test]

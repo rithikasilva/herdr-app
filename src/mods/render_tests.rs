@@ -704,7 +704,8 @@ fn settings_sections_and_updates(cx: &mut TestAppContext) {
     let mut p = props();
     p["section"] = json!("updates");
     let tree = describe(cx, &staged, "frame/settings", true, p, updates("ready", "ready"), None).unwrap();
-    assert!(tree.contains("Update the app yourself") && tree.contains("update herdr-core yourself"));
+    assert!(tree.contains("Herdr 0.1.0") && tree.contains("herdr-core 0.1.5"), "versions missing: {tree}");
+    assert!(!tree.contains("Update the app yourself") && !tree.contains("update herdr-core yourself"));
     assert!(!tree.contains("st-app-update") && !tree.contains("st-core-update"));
     eprintln!("settings cases: {:?}", start.elapsed());
 }
@@ -808,7 +809,8 @@ fn settings_keep_notes_in_the_whats_new_window(cx: &mut TestAppContext) {
     let mut p = props();
     p["section"] = json!("updates");
     let tree = describe(cx, &staged, "frame/settings", true, p, update.clone(), None).unwrap();
-    assert!(tree.contains("st-whats-new") && !tree.contains("st-app-update") && !tree.contains("st-check-core"));
+    assert!(tree.contains("Herdr 0.1.0") && tree.contains("herdr-core 0.1.5"));
+    assert!(!tree.contains("st-whats-new") && !tree.contains("st-app-update") && !tree.contains("st-check-core"));
     assert!(!tree.contains("Newest details") && !tree.contains("Older headline"));
     let mut p = props();
     p["notes"] = notes;

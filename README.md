@@ -8,6 +8,7 @@ Its changes from upstream are listed here and will be updated as the fork evolve
 - Removed usage telemetry, its settings and mod API, and the feedback submission feature.
 - Removed GitHub Actions workflows and release tooling; builds and installs run locally.
 - App and core updates are managed manually, without update checks or prompts.
+- Only the default Herdr layout is bundled; personal layouts remain available.
 
 The installation links below install upstream Herdr, not this fork.
 
