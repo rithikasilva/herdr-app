@@ -30,8 +30,6 @@ mod setup;
 mod sound;
 mod spawn;
 mod sprites;
-mod telemetry;
-mod feedback;
 mod terminal;
 mod update;
 mod update_notes;
@@ -48,7 +46,6 @@ Usage:
   herdr-app                        open the window
   herdr-app ls                     spaces, their tabs and terminals, in the open window
   herdr-app do <command> [args]    run a command: --name api --argv '[\"pi\"]', or one JSON object
-  herdr-app feedback <text>        draft feedback for the person to review and send
   herdr-app commands               every command, its arguments, what it does
   herdr-app status                 what the window shows, and any errors
   herdr-app shot [file.png]        save the last window frame (default: herdr-shot.png)
@@ -90,7 +87,7 @@ fn main() {
         gpui_shell::host::main_with_components(gpui_shell::FrozenComponentRegistry::default());
         return;
     }
-    if matches!(args.get(1).map(String::as_str), Some("do" | "status" | "ls" | "commands" | "feedback" | "shot")) {
+    if matches!(args.get(1).map(String::as_str), Some("do" | "status" | "ls" | "commands" | "shot")) {
         std::process::exit(control::client(&args[1..]));
     }
     // Anything else from a shell answers in the shell; only a bare launch opens the window.
@@ -120,7 +117,6 @@ fn main() {
         return;
     }
 
-    telemetry::clock();
     // A first start sizes the app to the screen and the system's text size.
     let fresh = !settings::path().exists();
     // The core people installed; without one, the setup screen installs it.
@@ -146,7 +142,6 @@ fn main() {
         update::after_update();
     }
     update::start();
-    telemetry::start(settings::telemetry_setting(&person));
     bench::start();
     if let Err(e) = mods::write_workspace() {
         eprintln!("herdr-app: cannot write {}: {e}", mods::app_dir().display());
@@ -176,7 +171,6 @@ fn main() {
                     }
                 }
                 mods::finish_shared();
-                telemetry::quit();
                 update::apply();
                 async {}
             })

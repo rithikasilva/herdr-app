@@ -456,15 +456,6 @@ Show what this release brought (it opens once by itself after an update).
 
 No arguments.
 
-## `app.feedback`
-
-Draft feedback for the person to review and send (from: person or agent).
-
-| Argument | Required |
-|---|---|
-| `message` | no |
-| `from` | no |
-
 ## `app.palette`
 
 Toggle the command palette: every command by name, with its key; calling again closes it.

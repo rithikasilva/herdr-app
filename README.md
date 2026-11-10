@@ -1,5 +1,45 @@
 # Herdr
 
+## Personal fork
+
+This is a personal fork of [herdrdev/herdr-app](https://github.com/herdrdev/herdr-app).
+Its changes from upstream are listed here and will be updated as the fork evolves:
+
+- Removed usage telemetry, its settings and mod API, and the feedback submission feature.
+
+The installation links below install upstream Herdr, not this fork.
+
+### Install and update the fork
+
+On each Mac, install Rust, Zig 0.16.0, and `just`, then clone this fork with
+submodules. From the checkout, run `just install` to build and install the
+app. To update a Mac from this fork, pull its latest changes, update submodules
+with `git submodule update --init --recursive`, then run `just install` again.
+Source builds do not automatically update to upstream releases.
+
+### Bring in upstream changes
+
+Once per checkout, add the upstream repository:
+
+```sh
+git remote add upstream https://github.com/herdrdev/herdr-app.git
+```
+
+To review an update, first commit your work, then create a branch and merge:
+
+```sh
+git fetch upstream
+git switch -c sync/upstream-YYYY-MM-DD
+git merge upstream/master
+git submodule update --init --recursive
+just test
+```
+
+Resolve conflicts and review the diff, especially telemetry, feedback, and the
+fork changes listed above. Update this section when your customizations change.
+After testing, merge the sync branch into your fork's main branch and push it;
+then run `just install` when ready. Do not push upstream release tags.
+
 Herdr is a desktop app for terminals and coding agents. Keep work in spaces, see which agents need you, and leave terminals running when you close the window.
 
 ## Install
@@ -89,7 +129,7 @@ Installed releases check for updates in the background and download a new app be
 Settings → Updates shows what is available. What's New opens after an update; you can open it again from the command palette.
 Builds from source do not update themselves.
 
-Usage telemetry is on by default in releases. Turn it off in Settings → Privacy.
+Herdr does not collect or send usage telemetry.
 Mods are trusted code, not sandboxed extensions. Read [security and privacy](docs/security.md) before installing someone else's mod.
 
 ## For agents
@@ -126,6 +166,7 @@ just install
 ```
 
 Install [just](https://github.com/casey/just) to use these recipes.
+
 The platform installer builds a release and adds the app to your desktop.
 On Linux it links to this checkout, so keep the checkout in place.
 Quit and reopen Herdr to use the new build.

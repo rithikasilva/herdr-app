@@ -383,9 +383,6 @@ pub struct Person {
     /// The panels' font (their sizes follow zoom).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ui_font: Option<String>,
-    /// Anonymous usage data (telemetry.rs). On unless set to false.
-    #[serde(skip_serializing_if = "is_true")]
-    pub telemetry: bool,
     /// Allow terminal programs (including remote ones) to copy text locally.
     #[serde(skip_serializing_if = "is_true")]
     pub clipboard_write: bool,
@@ -452,7 +449,6 @@ impl Default for Person {
             font_size: None,
             font_ligatures: false,
             ui_font: None,
-            telemetry: true,
             clipboard_write: true,
             pane_scrollbars: true,
             minimum_contrast: 1.0,
@@ -674,17 +670,7 @@ pub fn load_person() -> Result<Person, String> {
     Ok(person)
 }
 
-/// The value of settings.json's own `telemetry`, read even when the file has
-/// another problem: an explicit `false` always counts.
-pub fn telemetry_setting(person: &Result<Person, String>) -> bool {
-    match person {
-        Ok(p) => p.telemetry,
-        Err(_) => {
-            let raw = std::fs::read_to_string(path()).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok());
-            raw.and_then(|v| v.get("telemetry").and_then(serde_json::Value::as_bool)).unwrap_or(true)
-        }
-    }
-}
+
 
 pub fn write_person(person: &Person) -> std::io::Result<()> {
     crate::persist::write_atomic(&path(), serde_json::to_string_pretty(person).unwrap_or_default() + "\n")
@@ -937,11 +923,18 @@ mod tests {
         assert_eq!(Settings::compose(&person, &win98.look, true).theme, "ink");
     }
 
+    #[test]
+    fn settings_from_older_versions_still_load() {
+        let person: Person = serde_json::from_str(r#"{"telemetry":false,"zoom":1.5}"#).unwrap();
+        assert_eq!(person.zoom, 1.5);
+        assert!(serde_json::to_value(person).unwrap().get("telemetry").is_none());
+    }
+
     /// The guide agents read (written to the home folder) explains every
     /// settings.json key.
     #[test]
     fn the_guide_explains_every_setting() {
-        let all = Person { core: Some(String::new()), font: Some(String::new()), font_size: Some(1.0), ui_font: Some(String::new()), telemetry: false, clipboard_write: false, appearance: Appearance::Light, theme: Some(crate::layout::ThemeChoice::One(String::new())), colors: [("text".into(), String::new())].into(), ..Person::default() };
+        let all = Person { core: Some(String::new()), font: Some(String::new()), font_size: Some(1.0), ui_font: Some(String::new()), clipboard_write: false, appearance: Appearance::Light, theme: Some(crate::layout::ThemeChoice::One(String::new())), colors: [("text".into(), String::new())].into(), ..Person::default() };
         let keys: Vec<String> = serde_json::to_value(&all).unwrap().as_object().unwrap().keys().cloned().collect();
         let guide = include_str!("../defaults/AGENTS.md");
         let section = guide.split("## The person").nth(1).and_then(|s| s.split("\n## ").next()).unwrap_or_default();

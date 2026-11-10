@@ -2,3 +2,6 @@
 /dist
 /.brain
 /AGENTS.local.md
+
+# Project-local toolchains
+/.tools

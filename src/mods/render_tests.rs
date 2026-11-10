@@ -84,7 +84,6 @@ fn fixture(populated: bool, props: Value, update: Value) -> BTreeMap<String, Val
         ("settings".into(), serde_json::to_value(crate::settings::Settings::default()).unwrap()),
         ("themes".into(), json!([{"name":"graphite", "colors": &*crate::settings::theme()}])),  ("fonts".into(), json!(["Monospace", "Sans"])),
         ("updates".into(), update),
-        ("telemetry".into(), json!({"enabled":true,"setting":true,"sends":true,"off_because":null,"endpoint":"https://invalid.example", "draft":{},"queued":[],"last_sent":null})),
         ("window".into(), json!({"platform":"linux","titlebar":"none","buttons":true,"maximized":false,"fullscreen":false,"active":true})),
         ("placement".into(), Value::Null),
         ("home".into(), json!("/fixture")), ("appHome".into(), json!("/fixture/app")),
@@ -112,11 +111,6 @@ fn module(values: BTreeMap<String, Value>, calls: Rc<RefCell<Calls>>) -> HostMod
     for (name, value) in values {
         module = module.function(name, move |_| Ok(to_host(&value)));
     }
-    module = module.function("feedbackPreview", |a| {
-        Ok(to_host(
-            &json!({"available":true,"body":{"message":a.string(0)?,"email":a.string(1)?}}),
-        ))
-    });
     let shared = calls.clone();
     module = module.function("shared", move |a| {
         Ok(shared.borrow().shared.get(a.string(0)?).map(to_host).unwrap_or(HostValue::Null))
@@ -146,16 +140,12 @@ fn module(values: BTreeMap<String, Value>, calls: Rc<RefCell<Calls>>) -> HostMod
             })
         });
     }
-    for name in ["feedbackPasteImage", "feedbackClearImages", "feedbackAttachImages"] {
-        module = module.function(name, |_| Ok(HostValue::Null));
-    }
-    module = module.async_function("feedbackPickImages", |_| Ok(async { Ok(HostValue::Array(vec![])) }));
     module = module.async_function("knownAgents", |_| Ok(async { Ok(HostValue::Array(vec![])) }));
     module = module.async_function("pickFolder", |_| Ok(async { Ok(HostValue::Null) }));
     for name in ["nextCommand", "watchFolder"] {
         module = module.async_function(name, |_| Ok(std::future::pending::<gpui_shell::HostResult>()));
     }
-    for name in ["exec", "hc", "readTextFile", "writeTextFile", "sendFeedback"] {
+    for name in ["exec", "hc", "readTextFile", "writeTextFile"] {
         let calls = calls.clone();
         module = module.async_function(name, move |a| {
             let first = a.get(0).map(from_host).unwrap_or(Value::Null);
@@ -677,7 +667,7 @@ fn settings_sections_and_updates(cx: &mut TestAppContext) {
     cx.update(gpui_shell::init);
     let start = Instant::now();
     let staged = Staged::new();
-    for section in ["look", "alerts", "privacy", "updates"] {
+    for section in ["look", "alerts", "updates"] {
         let mut p = props();
         p["section"] = json!(section);
         describe(cx, &staged, "frame/settings", true, p, updates("current", "current"), None).unwrap();
@@ -810,30 +800,6 @@ fn local_state_and_overlay_initial_descriptions(cx: &mut TestAppContext) {
         .unwrap();
         let expected = ["Herdr runs your terminals in the background", "Add your other machines", "Choose your panels", "Make it yours"][page - 1];
         assert!(tree.contains(expected), "welcome page {page}: {tree}");
-    }
-    for setup in ["", "this.sent = true;", "this.error = 'Fixture error';"] {
-        let tree = describe(
-            cx,
-            &staged,
-            "frame/feedback",
-            true,
-            props(),
-            updates("current", "current"),
-            Some(setup),
-        )
-        .unwrap();
-        assert!(tree.contains("feedback"), "{tree}");
-        if setup.is_empty() {
-            assert!(
-                tree.contains("Input #") && tree.contains("Textarea #") && tree.contains("A prefilled message"),
-                "{tree}"
-            );
-        } else {
-            assert!(
-                tree.contains(if setup.contains("sent") { "Sent. Thanks" } else { "Fixture error" }),
-                "{tree}"
-            );
-        }
     }
     for query in ["settings", "no-such-command"] {
         let tree = describe(
